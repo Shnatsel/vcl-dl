@@ -30,3 +30,7 @@ will download the entire gallery of http://us.vclart.net/vcl/Artists/LavaCat/
 
 ## Disclaimer
 It is your own responsibility to check whether batch downloading is allowed by VCL terms of service and to abide by them. For further disclaimers see LICENSE.
+
+## See also
+
+There is a similar downloader for FurAffinity, see https://github.com/Shnatsel/furaffinity-dl

@@ -1,0 +1,74 @@
+#!/bin/bash
+set -e
+
+if [ "$1" = "" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "Usage: $0 ARTIST
+Downloads all the images from a VCL artist's gallery to the current directory,
+and prepends the upload date to the file so they would sort chronologically.
+Also preserves the artist's folder hierarchy.
+
+Example:
+ $0 LavaCat
+will download the gallery http://us.vclart.net/vcl/Artists/LavaCat/"
+    exit 1
+fi
+
+runtime_dir="$HOME"'/.cache/vlc-dl'
+mkdir -p "$runtime_dir"
+
+instance_tempdir="$(mktemp -d --tmpdir=$runtime_dir)"
+
+cleanup() {
+    rm -r "$runtime_dir"
+}
+trap cleanup EXIT
+
+
+# set a wget wrapper with custom user agent
+vclwget() {
+    wget --user-agent="Mozilla/5.0 vcl-dl (https://github.com/Shnatsel/vcl-dl)" $*
+}
+
+folder_names_from_file() {
+    grep --only-matching '<td><a href="[^\"]\+/\"' "$1" | grep -v 'href="http' \
+    | grep -v 'index.\+\.html' | cut -d '"' -f 2
+}
+
+pages_list_from_file() {
+    grep --only-matching '<td><a href="[^\"]\+\"' "$1" | grep -v 'href="http' \
+    | grep 'index[0-9]\+\.html' | cut -d '"' -f 2
+}
+
+base_url=http://us.vclart.net/vcl/Artists/"$1"/
+
+traverse_folders() {
+for folder in $*; do
+    folder_tempfile="$(mktemp --tmpdir=$instance_tempdir)"
+    echo "Processing $folder"
+    ( # start a new subshell so we can cd safely
+    mkdir -p "$folder"
+    cd "$folder"
+    vclwget -O "$folder_tempfile" "$base_url""$folder"
+    for page_with_images in $(pages_list_from_file "$folder_tempfile"); do
+        img_page_tempfile="$(mktemp --tmpdir=$instance_tempdir)"
+        vclwget -O "$img_page_tempfile" "$base_url""$folder"/"$page_with_images"
+        cat $img_page_tempfile | tr -d '\n' | sed 's|</tr>|</tr>\n|g' | grep 'href=\"http://us-p.vclart.net/vcl/' | while read image_url_and_metadata; do
+            # TODO: extract date and prepend it to the file name
+            image_url=$(echo "$image_url_and_metadata" | grep --only-matching 'href="http://us-p.vclart.net/[^"]\+"' | sort -u | cut -d '"' -f 2)
+            image_upload_date=$(echo "$image_url_and_metadata" | grep --only-matching '&nbsp;[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}' | sed 's|&nbsp;||')
+            vclwget -O "$image_upload_date"'_'"$(basename $image_url)" "$image_url"
+        done
+    done
+    )
+    # Recurse into folders contained in this one
+    subfolders_list=''
+    #echo "Detected folder names:"
+    #folder_names_from_file "$folder_tempfile"
+    for subfolder in $(folder_names_from_file "$folder_tempfile"); do
+        subfolders_list="$subfolders_list $folder/$subfolder"
+    done
+    if [ "$subfolders_list" != "" ]; then traverse_folders "$subfolders_list"; fi
+done
+}
+
+traverse_folders .

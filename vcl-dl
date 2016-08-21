@@ -53,10 +53,16 @@ for folder in $*; do
         img_page_tempfile="$(mktemp --tmpdir=$instance_tempdir)"
         vclwget -O "$img_page_tempfile" "$base_url""$folder"/"$page_with_images"
         cat $img_page_tempfile | tr -d '\n' | sed 's|</tr>|</tr>\n|g' | grep 'href=\"http://us-p.vclart.net/vcl/' | while read image_url_and_metadata; do
-            # TODO: extract date and prepend it to the file name
             image_url=$(echo "$image_url_and_metadata" | grep --only-matching 'href="http://us-p.vclart.net/[^"]\+"' | sort -u | cut -d '"' -f 2)
             image_upload_date=$(echo "$image_url_and_metadata" | grep --only-matching '&nbsp;[0-9]\{4\}\.[0-9]\{2\}\.[0-9]\{2\}' | sed 's|&nbsp;||')
-            vclwget -O "$image_upload_date"'_'"$(basename $image_url)" "$image_url"
+            image_description=$(echo "$image_url_and_metadata" | sed 's|<p>|{<p>|' | cut -d '{' -f 2- | rev | sed 's|>rb<|}>rb<|' | cut -d '}' -f 2- | rev)
+            image_name="$(basename $image_url)"
+            vclwget -O "$image_upload_date"'_'"$image_name" "$image_url"
+            if [ "$image_description" != '<p><br>' ]; then
+                echo '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">' > "$image_upload_date"'_'"$image_name"'.description.html'
+                echo "<html><head><title>$image_upload_date'_'$image_name description by author</title></head><body>" >> "$image_upload_date"'_'"$image_name"'.description.html'
+                echo "$image_description</body>" >> "$image_upload_date"'_'"$image_name"'.description.html'
+            fi
         done
     done
     )

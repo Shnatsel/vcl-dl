@@ -5,6 +5,7 @@ as well as to ensure that when VCL perishes like Geocities we will have at least
 
 Downloads all images from a gallery, preserving artist's folder structure.
 Prepends upload date to filenames so that they appear in chronological order locally.
+Also downloads authors description of the picture (if present) and stores it in .html file.
 
 
 ## Requirements
@@ -24,9 +25,6 @@ creating subdirectories to mirror the remote gallery structure.
  `vcl-dl LavaCat`
 
 will download the entire gallery of http://us.vclart.net/vcl/Artists/LavaCat/
-
-## TODO
- * Download author's description of the artwork
 
 ## Disclaimer
 It is your own responsibility to check whether batch downloading is allowed by VCL terms of service and to abide by them. For further disclaimers see LICENSE.

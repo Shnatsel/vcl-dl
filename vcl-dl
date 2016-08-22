@@ -19,7 +19,7 @@ mkdir -p "$runtime_dir"
 instance_tempdir="$(mktemp -d --tmpdir=$runtime_dir)"
 
 cleanup() {
-    rm -r "$runtime_dir"
+    rm -r "$instance_tempdir"
 }
 trap cleanup EXIT
 
